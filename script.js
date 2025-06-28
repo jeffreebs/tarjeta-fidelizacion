@@ -12,7 +12,7 @@ const emailError = document.getElementById('emailError');
 const continueButton = document.querySelector('#emailGate button');
 
 let currentUser = {
-    id: null, // El ID del documento en Firestore
+    id: null,
     email: null,
     progreso: Array(SPOTS_COUNT).fill(false),
     ultimaRaspada: null
@@ -20,9 +20,6 @@ let currentUser = {
 
 // --- Lógica Principal ---
 
-/**
- * Función que se ejecuta al hacer clic en "Continuar"
- */
 async function handleLogin() {
     const email = userEmailInput.value.trim().toLowerCase();
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -36,14 +33,12 @@ async function handleLogin() {
     continueButton.textContent = "Verificando...";
 
     try {
-        // Correcto: Buscar un documento DONDE el campo 'correo' sea igual al email ingresado
         const q = query(collection(db, "clientes"), where("correo", "==", email));
         const querySnapshot = await getDocs(q);
 
         if (querySnapshot.empty) {
-            // -- CASO 1: Usuario Nuevo --
             console.log("Usuario nuevo. Creando registro...");
-            const newDocRef = doc(collection(db, "clientes")); // Crea referencia con ID automático
+            const newDocRef = doc(collection(db, "clientes"));
             
             currentUser = {
                 id: newDocRef.id,
@@ -52,7 +47,6 @@ async function handleLogin() {
                 ultimaRaspada: null
             };
 
-            // Guardamos el nuevo usuario en la base de datos
             await setDoc(newDocRef, { 
                 correo: currentUser.email,
                 progreso: currentUser.progreso,
@@ -60,9 +54,8 @@ async function handleLogin() {
             });
             
         } else {
-            // -- CASO 2: Usuario Existente --
             console.log("Usuario existente. Cargando datos...");
-            const docSnap = querySnapshot.docs[0]; // Tomamos el primer resultado
+            const docSnap = querySnapshot.docs[0];
             const data = docSnap.data();
 
             currentUser = {
@@ -73,32 +66,28 @@ async function handleLogin() {
             };
         }
         
-        // Una vez tenemos los datos, mostramos la tarjeta
         showLoyaltyCard();
 
     } catch (error) {
         console.error("Error al interactuar con Firestore: ", error);
-        emailError.textContent = "Ocurrió un error. Inténtalo de nuevo.";
+        // ----- ¡¡AQUÍ ESTÁ EL CAMBIO IMPORTANTE!! -----
+        emailError.textContent = `Error Detallado: ${error.message}`; 
+        // ---------------------------------------------
         continueButton.disabled = false;
         continueButton.textContent = "Continuar";
     }
 }
 
-/**
- * Muestra la tarjeta de fidelización y la inicializa
- */
+// ... (El resto del archivo no cambia, pero lo incluyo por si acaso) ...
 function showLoyaltyCard() {
     emailGate.style.display = "none";
     loyaltyCard.style.display = "block";
     initCard();
 }
 
-/**
- * Inicializa y renderiza los spots de la tarjeta
- */
 function initCard() {
-    spotsContainer.innerHTML = ""; // Limpiar antes de renderizar
-    const hoy = new Date().toISOString().split("T")[0]; // Formato YYYY-MM-DD
+    spotsContainer.innerHTML = "";
+    const hoy = new Date().toISOString().split("T")[0];
     const yaRaspoHoy = currentUser.ultimaRaspada === hoy;
 
     if (yaRaspoHoy) {
@@ -109,7 +98,6 @@ function initCard() {
         const spot = document.createElement('div');
         spot.className = 'scratch-spot';
 
-        // ... (código para crear el SVG y el canvas, sin cambios)
         const prize = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         prize.setAttribute('class', 'spot-prize');
         prize.setAttribute('viewBox', '0 0 100 100');
@@ -124,63 +112,31 @@ function initCard() {
         } else if (!yaRaspoHoy) {
             setupScratchableSpot(spot, i);
         } else {
-             // Bloquear si ya raspó hoy
             spot.style.pointerEvents = "none";
-            spot.querySelector('canvas').style.backgroundColor = "#888"; // Indicar visualmente que está bloqueado
+            spot.querySelector('canvas').style.backgroundColor = "#888";
         }
     }
 }
 
-/**
- * Configura un spot para que pueda ser raspado
- */
 function setupScratchableSpot(spotElement, index) {
-    // ... (Tu código de canvas para raspar es bueno, lo movemos aquí)
-    // Se puede copiar y pegar la mayor parte de tu función `setupSpot` original.
-    // La clave es que al revelar, llamamos a revealSpot.
     const canvas = spotElement.querySelector('canvas');
+    canvas.addEventListener('click', () => revealSpot(spotElement, index));
+    // Simplificado para el ejemplo, tu código de raspar original está bien
     const ctx = canvas.getContext('2d');
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
-    let isDrawing = false;
     ctx.fillStyle = '#bdc3c7';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.globalCompositeOperation = 'destination-out';
-    
-    function getEventLocation(e) { return e.touches?.[0] || e; }
-    
-    function scratch(x, y) {
-        ctx.beginPath();
-        ctx.arc(x, y, 20, 0, 2 * Math.PI);
-        ctx.fill();
-    }
-    
-    function checkReveal() {
-        // ... (lógica para comprobar el porcentaje raspado)
-        // Si es suficiente, llamar a revealSpot
-        revealSpot(spotElement, index);
-    }
-    
-    // Añadir todos los listeners (mousedown, mousemove, etc.)
-    // Al final del `mouseup` o `touchend`, llamar a `checkReveal()`.
-    // Por simplicidad, aquí lo revelamos al hacer click.
-    canvas.addEventListener('click', () => revealSpot(spotElement, index));
 }
 
-
-/**
- * Revela un spot y actualiza la base de datos
- */
 async function revealSpot(spotElement, index) {
     if (currentUser.progreso[index]) return;
 
     spotElement.classList.add('is-scratched');
     
-    // Actualizar estado local
     currentUser.progreso[index] = true;
     currentUser.ultimaRaspada = new Date().toISOString().split("T")[0];
 
-    // Actualizar en Firestore
     const docRef = doc(db, "clientes", currentUser.id);
     try {
         await updateDoc(docRef, {
@@ -189,7 +145,6 @@ async function revealSpot(spotElement, index) {
         });
         console.log("Progreso actualizado en Firestore.");
         
-        // Deshabilitar el resto de los spots
         initCard();
 
     } catch(error) {
@@ -203,24 +158,17 @@ async function revealSpot(spotElement, index) {
     }
 }
 
-/**
- * Función de inicialización de la página
- */
 function initializePage() {
-    // REGLA DEL QR: Comprobar si la URL tiene el parámetro secreto
     const urlParams = new URLSearchParams(window.location.search);
     if (!urlParams.has('from') || urlParams.get('from') !== 'qr') {
         document.body.innerHTML = `<div style="color:white; text-align:center; padding: 40px;"><h1>Acceso no válido</h1><p>Por favor, escanea el código QR en el local para participar.</p></div>`;
         return;
     }
     
-    // Si el acceso es válido, ocultamos la tarjeta y mostramos el login
     loyaltyCard.style.display = 'none';
     emailGate.style.display = 'block';
 
-    // Asignar el evento al botón
     continueButton.addEventListener('click', handleLogin);
 }
 
-// Iniciar todo cuando la página cargue
 document.addEventListener('DOMContentLoaded', initializePage);
