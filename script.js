@@ -1,6 +1,12 @@
-// Importar funciones de Firebase
+// ===================================
+//      ARCHIVO: script.js
+// ===================================
+
+// --- CAMBIO APLICADO AQUÍ ---
+// Se unifica la versión de Firebase a 11.9.1 para que coincida con firebase-config.js
+import { collection, query, where, getDocs, doc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+// Esta importación local desde tu archivo de configuración es correcta.
 import { db } from './firebase-config.js';
-import { collection, query, where, getDocs, doc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // --- Variables Globales ---
 const SPOTS_COUNT = 5;
@@ -70,15 +76,13 @@ async function handleLogin() {
 
     } catch (error) {
         console.error("Error al interactuar con Firestore: ", error);
-        // ----- ¡¡AQUÍ ESTÁ EL CAMBIO IMPORTANTE!! -----
-        emailError.textContent = `Error Detallado: ${error.message}`; 
-        // ---------------------------------------------
+        // Muestra un error más claro al usuario si algo falla con la base de datos.
+        emailError.textContent = `Error al verificar: ${error.message}`; 
         continueButton.disabled = false;
         continueButton.textContent = "Continuar";
     }
 }
 
-// ... (El resto del archivo no cambia, pero lo incluyo por si acaso) ...
 function showLoyaltyCard() {
     emailGate.style.display = "none";
     loyaltyCard.style.display = "block";
@@ -91,7 +95,9 @@ function initCard() {
     const yaRaspoHoy = currentUser.ultimaRaspada === hoy;
 
     if (yaRaspoHoy) {
-        alert("Ya has participado hoy. ¡Vuelve mañana!");
+        // En lugar de un alert, podrías mostrar un mensaje más amigable en la UI.
+        const headerText = document.querySelector('.loyalty-card header p');
+        if (headerText) headerText.textContent = "¡Ya has participado hoy, vuelve mañana!";
     }
 
     for (let i = 0; i < SPOTS_COUNT; i++) {
@@ -113,15 +119,21 @@ function initCard() {
             setupScratchableSpot(spot, i);
         } else {
             spot.style.pointerEvents = "none";
-            spot.querySelector('canvas').style.backgroundColor = "#888";
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.clientWidth || 60;
+            canvas.height = canvas.clientHeight || 60;
+            ctx.fillStyle = '#888'; // Color para indicar que está desactivado
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
     }
 }
 
 function setupScratchableSpot(spotElement, index) {
     const canvas = spotElement.querySelector('canvas');
+    // Para simplificar, usamos click en lugar de raspar.
+    // Tu lógica original de raspar con mousemove también funcionaría aquí.
     canvas.addEventListener('click', () => revealSpot(spotElement, index));
-    // Simplificado para el ejemplo, tu código de raspar original está bien
+    
     const ctx = canvas.getContext('2d');
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
@@ -132,10 +144,14 @@ function setupScratchableSpot(spotElement, index) {
 async function revealSpot(spotElement, index) {
     if (currentUser.progreso[index]) return;
 
+    // Evita que se pueda raspar más de una vez por día
+    const hoy = new Date().toISOString().split("T")[0];
+    if (currentUser.ultimaRaspada === hoy) return;
+
     spotElement.classList.add('is-scratched');
     
     currentUser.progreso[index] = true;
-    currentUser.ultimaRaspada = new Date().toISOString().split("T")[0];
+    currentUser.ultimaRaspada = hoy;
 
     const docRef = doc(db, "clientes", currentUser.id);
     try {
@@ -145,10 +161,12 @@ async function revealSpot(spotElement, index) {
         });
         console.log("Progreso actualizado en Firestore.");
         
+        // Vuelve a dibujar la tarjeta para deshabilitar los otros spots
         initCard();
 
     } catch(error) {
         console.error("Error al actualizar: ", error);
+        alert("Hubo un error al guardar tu progreso. Inténtalo de nuevo.");
     }
 
     if (currentUser.progreso.every(p => p)) {
@@ -169,6 +187,12 @@ function initializePage() {
     emailGate.style.display = 'block';
 
     continueButton.addEventListener('click', handleLogin);
+    // Permite enviar con la tecla Enter en el campo de email
+    userEmailInput.addEventListener('keyup', (event) => {
+        if (event.key === 'Enter') {
+            handleLogin();
+        }
+    });
 }
 
 document.addEventListener('DOMContentLoaded', initializePage);
