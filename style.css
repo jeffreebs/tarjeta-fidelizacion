@@ -1,0 +1,184 @@
+/* Estilos generales y de la página */
+:root {
+    --page-bg: #4a4a4a; 
+    --card-bg: #8c7d6b; 
+    --text-color: #f5f5f5;
+    --accent-color: #d4af37;
+    --scratch-color: #a89a87;
+    --spot-bg-revealed: #5a4f41;
+}
+
+body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--page-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* La tarjeta de fidelización */
+.loyalty-card {
+    background: var(--card-bg);
+    color: var(--text-color);
+    border-radius: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+    width: 100%;
+    max-width: 550px;
+    text-align: center;
+    overflow: hidden;
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transform: perspective(1200px) rotateY(-7deg) rotateX(4deg); 
+    animation: levitar 4s ease-in-out infinite;
+}
+
+.loyalty-card:hover {
+    transform: perspective(1200px) rotateY(0) rotateX(0);
+}
+
+
+/* Encabezado */
+.loyalty-card header {
+    position: relative;
+    padding: 20px 25px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* --- AJUSTE 1: LOGO MÁS GRANDE --- */
+.card-logo {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%) scale(1.5); /* AGRANDADO CON SCALE */
+    width: auto;
+    height: 220px; /* AUMENTADO para más altura visible */
+    object-fit: contain;
+    /* QUITAMOS el filter para no hacerla blanca y opaca */
+}
+
+
+/* Ajuste para el texto, para dejar espacio al logo más grande */
+.header-text {
+    padding-top: 110px; /* AUMENTADO de 90px a 110px (siempre un poco más que la altura del logo) */
+}
+
+/* --- AJUSTE 2: TÍTULO MÁS PEQUEÑO --- */
+.loyalty-card h1 {
+    font-family: 'Playfair Display', serif;
+    margin: 0;
+    font-size: 1.2em; /* REDUCIDO de 1.8em a 1.6em */
+    color: var(--accent-color);
+    font-weight: 700;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+}
+
+.loyalty-card p {
+    margin: 8px 0 0;
+    font-size: 0.9em;
+    opacity: 0.8;
+    color: var(--text-color);
+}
+
+/* Contenedor de los círculos raspables */
+.spots-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 25px 30px;
+}
+
+/* --- Resto del CSS (sin cambios) --- */
+.scratch-spot {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--spot-bg-revealed);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: inset 0 3px 6px rgba(0,0,0,0.4);
+}
+
+.spot-prize {
+    width: 50%;
+    height: 50%;
+    stroke: var(--accent-color);
+    stroke-width: 10;
+    opacity: 0;
+    filter: drop-shadow(0 0 2px var(--accent-color));
+    transform: scale(0.5);
+    transition: all 0.3s ease-out;
+}
+
+.scratch-spot canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background-color: var(--scratch-color);
+    cursor: grab;
+    transition: opacity 0.4s ease, transform 0.3s ease;
+}
+.scratch-spot canvas:active {
+    cursor: grabbing;
+}
+
+.scratch-spot.is-scratched canvas {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.scratch-spot.is-scratched .spot-prize {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.loyalty-card footer {
+    background: rgba(0,0,0,0.15);
+    padding: 15px;
+    font-size: 0.8em;
+}
+.loyalty-card footer p {
+    margin: 0;
+    opacity: 0.7;
+}
+
+@keyframes levitar {
+    0% {
+        transform: perspective(1200px) rotateY(-7deg) rotateX(4deg) translateY(0);
+    }
+    50% {
+        transform: perspective(1200px) rotateY(-9deg) rotateX(5deg) translateY(-20px); /* MÁS LEVITACIÓN */
+    }
+    100% {
+        transform: perspective(1200px) rotateY(-7deg) rotateX(4deg) translateY(0);
+    }
+}
+
+
+.loyalty-card:hover {
+    animation: none;
+    transform: perspective(1200px) rotateY(0deg) rotateX(0deg) translateY(-10px);
+    transition: all 0.4s ease;
+}
+
+@media (max-width: 480px) {
+    .spots-container {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .scratch-spot {
+        width: 50px;
+        height: 50px;
+    }
+
+    .card-logo {
+        height: 160px;
+    }
+}
